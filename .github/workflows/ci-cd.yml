@@ -118,7 +118,7 @@ jobs:
           docker push ${{ secrets.AZURE_REGISTRY_SERVER }}/fifa-backend:latest
 
       - name: Deploy Backend to Azure Container Apps (Canary - 10% Traffic)
-        uses: azure/container-apps-deploy-action@v1
+        uses: azure/container-apps-deploy-action@v2
         with:
           imageToDeploy: ${{ secrets.AZURE_REGISTRY_SERVER }}/fifa-backend:${{ github.sha }}
           containerAppName: fifa-ticketing-backend
