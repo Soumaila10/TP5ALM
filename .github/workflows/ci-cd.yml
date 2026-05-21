@@ -1,0 +1,139 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  # ============================================================
+  # Backend — lint + tests + build Docker
+  # ============================================================
+  backend:
+    name: Backend (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [20]
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Tests (Jest)
+        run: npm test -- --coverage --ci
+        env:
+          NODE_ENV: test
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage
+
+  # ============================================================
+  # Frontend — lint + tests + build Vite
+  # ============================================================
+  frontend:
+    name: Frontend (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [20]
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Tests
+        run: npm test -- --ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+  # ============================================================
+  # Deploy — exécuté uniquement sur push sur main
+  # ============================================================
+  deploy:
+    name: Deploy to Azure (Canary Strategy)
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Log in to Azure Container Registry
+        uses: azure/docker-login@v2
+        with:
+          login-server: ${{ secrets.AZURE_REGISTRY_SERVER }}
+          username: ${{ secrets.AZURE_REGISTRY_USERNAME }}
+          password: ${{ secrets.AZURE_REGISTRY_PASSWORD }}
+
+      - name: Build and Push Backend Docker Image
+        run: |
+          docker build -t ${{ secrets.AZURE_REGISTRY_SERVER }}/fifa-backend:${{ github.sha }} -t ${{ secrets.AZURE_REGISTRY_SERVER }}/fifa-backend:latest ./backend
+          docker push ${{ secrets.AZURE_REGISTRY_SERVER }}/fifa-backend:${{ github.sha }}
+          docker push ${{ secrets.AZURE_REGISTRY_SERVER }}/fifa-backend:latest
+
+      - name: Deploy Backend to Azure Container Apps (Canary - 10% Traffic)
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          imageToDeploy: ${{ secrets.AZURE_REGISTRY_SERVER }}/fifa-backend:${{ github.sha }}
+          containerAppName: fifa-ticketing-backend
+          resourceGroup: fifa-ticketing-rg
+          # Deploying as a new revision with 10% traffic for validation (canary)
+          # A post-deployment action or manual step would promote to 100% traffic
+          # using: az containerapp ingress traffic set --name ... --resource-group ... --label canary --revision-weight latest=10 stable=90
+
+      - name: Deploy Frontend to Azure Static Web Apps
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: "upload"
+          app_location: "/frontend"
+          output_location: "dist"
+          skip_app_build: true # Already built in the frontend job
+
