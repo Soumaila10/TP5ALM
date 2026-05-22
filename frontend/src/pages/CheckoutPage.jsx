@@ -325,7 +325,7 @@ export default function CheckoutPage() {
             {isAuthenticated && (
               <div className="flex items-center gap-3">
                 <span className="hidden md:inline text-sm text-text-secondary">
-                  Bonjour, <strong className="text-text-primary">{user?.firstName}</strong>
+                  Bonjour, <strong className="text-text-primary">{user?.firstName} {user?.lastName}</strong>
                 </span>
                 <button
                   onClick={handleLogout}

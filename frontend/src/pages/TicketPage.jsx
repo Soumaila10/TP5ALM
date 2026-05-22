@@ -150,7 +150,7 @@ export default function TicketPage() {
             {isAuthenticated && (
               <div className="flex items-center gap-3">
                 <span className="hidden md:inline text-sm text-text-secondary">
-                  Bonjour, <strong className="text-text-primary">{user?.firstName}</strong>
+                  Bonjour, <strong className="text-text-primary">{user?.firstName} {user?.lastName}</strong>
                 </span>
                 <Link to="/orders" className="text-xs font-bold text-text-primary border border-border-light px-3 py-1.5 rounded-full hover:bg-bg-tertiary transition-colors">
                   Historique

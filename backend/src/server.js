@@ -43,12 +43,14 @@ async function bootstrap() {
         logger,
       });
 
-      // If we spun up MongoMemoryServer, automatically seed it with mock matches
-      if (mongoServer) {
-        logger.info('[bootstrap] Seeding in-memory database with mock matches, stadiums, seats, and admin...');
+      // Automatically seed database if empty
+      const Match = require('./models/Match');
+      const matchCount = await Match.countDocuments();
+      if (matchCount === 0) {
+        logger.info('[bootstrap] Database is empty. Seeding mock matches, stadiums, seats, and admin...');
         const { seedData } = require('./scripts/seed');
         await seedData();
-        logger.info('[bootstrap] In-memory database seeded successfully!');
+        logger.info('[bootstrap] Database seeded successfully!');
       }
     } catch (err) {
       if (env.NODE_ENV === 'development' && !mongoServer) {

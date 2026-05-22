@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { login, getGoogleAuthUrl, getGithubAuthUrl } from '../services/authService';
+import { useAuthStore } from '../store/authStore';
 import ThemeToggle from '../components/ThemeToggle';
 
 export default function LoginPage() {
@@ -11,6 +12,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const oauthError = searchParams.get('error');
+  const setAuth = useAuthStore((state) => state.setAuth);
 
   const handleGoogleLogin = () => {
     window.location.href = getGoogleAuthUrl();
@@ -46,8 +48,9 @@ export default function LoginPage() {
 
     try {
       const response = await login({ email, password });
-      if (response.tempToken) {
-        navigate('/verify-otp', { state: { tempToken: response.tempToken, email } });
+      if (response.accessToken) {
+        setAuth(response.user, response.accessToken);
+        navigate('/');
       } else {
         setError('Erreur inattendue, jeton manquant');
       }

@@ -13,7 +13,14 @@ function createApp({ frontendUrl } = {}) {
   app.use(helmet());
   app.use(
     cors({
-      origin: frontendUrl || process.env.FRONTEND_URL || 'http://localhost:5173',
+      origin: function (origin, callback) {
+        // Allow local network and localhost in development
+        if (!origin || origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1') || origin.startsWith('http://192.168.')) {
+          callback(null, true);
+        } else {
+          callback(null, frontendUrl || process.env.FRONTEND_URL || 'http://localhost:5173');
+        }
+      },
       credentials: true,
     }),
   );

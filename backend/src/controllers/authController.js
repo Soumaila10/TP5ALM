@@ -24,8 +24,12 @@ async function register(req, res, next) {
 async function login(req, res, next) {
   try {
     const { email, password } = req.body;
-    const result = await authService.login({ email, password });
-    res.json(result);
+    const { accessToken, refreshToken, user } = await authService.login({ email, password });
+    
+    // Store refresh token in HttpOnly cookie
+    res.cookie('refreshToken', refreshToken, COOKIE_OPTIONS);
+    
+    res.json({ accessToken, user });
   } catch (err) {
     next(err);
   }

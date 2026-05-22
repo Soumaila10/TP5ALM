@@ -8,10 +8,16 @@ export async function register({ email, password, firstName, lastName, phone }) 
 }
 
 export async function login({ email, password }) {
-  return apiRequest('/auth/login', {
+  const result = await apiRequest('/auth/login', {
     method: 'POST',
     body: { email, password },
   });
+  
+  if (result.accessToken) {
+    setAccessToken(result.accessToken);
+  }
+  
+  return result;
 }
 
 export async function verifyOTP({ tempToken, code }) {

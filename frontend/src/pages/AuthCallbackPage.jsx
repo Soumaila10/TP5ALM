@@ -22,10 +22,10 @@ export default function AuthCallbackPage() {
         setAccessToken(token);
         
         // 2. Fetch profile info
-        const user = await getProfile();
+        const response = await getProfile();
         
         // 3. Update auth store
-        setAuth(user, token);
+        setAuth(response.user, token);
         
         // 4. Navigate back home
         navigate('/');

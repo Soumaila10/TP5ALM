@@ -101,7 +101,7 @@ export default function OrderHistoryPage() {
             {isAuthenticated && (
               <div className="flex items-center gap-3">
                 <span className="hidden md:inline text-sm text-text-secondary">
-                  Bonjour, <strong className="text-text-primary">{user?.firstName}</strong>
+                  Bonjour, <strong className="text-text-primary">{user?.firstName} {user?.lastName}</strong>
                 </span>
                 <Link to="/" className="text-xs font-bold text-brand-gold border border-brand-gold/30 px-3 py-1.5 rounded-full hover:bg-brand-gold/10 transition-colors">
                   Acheter des billets

@@ -46,25 +46,20 @@ async function login({ email, password }) {
     throw new AppError(401, 'Identifiants invalides', 'INVALID_CREDENTIALS');
   }
 
-  // Generate 6-digit OTP code
-  const otpCode = crypto.randomInt(100000, 999999).toString();
-  const otpExpiresAt = new Date(Date.now() + 600000); // 10 minutes from now
-
-  user.otpCode = otpCode;
-  user.otpExpiresAt = otpExpiresAt;
-  await user.save();
-
-  // Send OTP via email in background
-  emailService.sendOTPEmail(user.email, otpCode).catch(() => {});
-
-  // Generate a short-lived tempToken (valid 5 minutes) to identify user in next step
-  const tempToken = jwt.sign(
-    { userId: user._id, type: 'temp_otp' },
+  // Generate accessToken (15 minutes) and refreshToken (7 days)
+  const accessToken = jwt.sign(
+    { userId: user._id, role: user.role, email: user.email },
     JWT_ACCESS_SECRET,
-    { expiresIn: '5m' }
+    { expiresIn: '15m' }
   );
 
-  return { tempToken };
+  const refreshToken = jwt.sign(
+    { userId: user._id },
+    JWT_REFRESH_SECRET,
+    { expiresIn: '7d' }
+  );
+
+  return { accessToken, refreshToken, user };
 }
 
 async function verifyOTP({ tempToken, code }) {
